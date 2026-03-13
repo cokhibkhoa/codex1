@@ -11,20 +11,18 @@ Dựng bộ khung tối giản để phát hiện và theo dõi lỗi chất lư
 ## 3) Nguồn dữ liệu
 - HubSpot export CSV đặt tại thư mục `data/` hoặc API sync vào bảng raw.
 - Thực thể chính:
-  - `raw.hubspot_tickets`
-  - `raw.hubspot_deals`
-
-> TODO: xác nhận tên bảng raw thực tế trong môi trường của bạn.
+- data/Data Quality - Deals.csv
+- data/Data Quality - Tickets.csv
 
 ## 4) Phạm vi lỗi chất lượng cần xử lý
 - Thiếu dữ liệu bắt buộc (null/blank).
 - Sai format (
 - Sai logic nghiệp vụ (status, amount, timeline).
 - Mapping sai giữa tickets ↔ deals.
-- Duplicate record id (tickets),
+- Duplicate record id (tickets id, deals id).
 - Tickets link multiple deals (deals id có thể link với nhiều tickets id.)
 - Multi-value bất thường.
-- Amount lệch (tickets amount lệch so với deals sale value >1000)
+- Amount lệch (tickets amount lệch so với deals sale value, giá trị lệch >1000)
 
 ## 5) Nguyên tắc thiết kế
 - Implementation-first: chạy được sớm với mẫu nhỏ.
