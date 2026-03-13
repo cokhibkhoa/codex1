@@ -18,10 +18,10 @@ create schema if not exists checks;
 create or replace view checks.v_check_duplicate_ticket_id as
 with duplicate_key as (
     select
-        cast(ticket_id as text) as ticket_id,
+        nullif(trim(ticket_id), '') as ticket_id,
         count(*) as row_count
     from raw.hubspot_tickets
-    group by cast(ticket_id as text)
+    group by nullif(trim(ticket_id), '')
     having count(*) > 1
 )
 select
@@ -30,4 +30,5 @@ select
     d.row_count,
     'HIGH'::text as severity,
     now() as detected_at
-from duplicate_key d;
+from duplicate_key d
+where d.ticket_id is not null;

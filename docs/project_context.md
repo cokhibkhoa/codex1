@@ -9,7 +9,7 @@ Dựng bộ khung tối giản để phát hiện và theo dõi lỗi chất lư
 - Chưa có quy ước input/output cho các bước clean/check/mart.
 
 ## 3) Nguồn dữ liệu
-- HubSpot export CSV hoặc API sync vào bảng raw.
+- HubSpot export CSV đặt tại thư mục `data/` hoặc API sync vào bảng raw.
 - Thực thể chính:
   - `raw.hubspot_tickets`
   - `raw.hubspot_deals`
@@ -30,3 +30,9 @@ Dựng bộ khung tối giản để phát hiện và theo dõi lỗi chất lư
 - Practical/minimal: SQL rõ ràng, không over-engineering.
 - Maintainable: tách lớp `raw -> clean -> checks -> marts`.
 - Business-safe: rule chưa rõ phải gắn `TODO` và chờ xác nhận.
+
+
+## 6) Dữ liệu mẫu trong repo
+- `data/Data Quality - Deals.csv`
+- `data/Data Quality - Tickets.csv`
+- SQL nạp raw mẫu: `sql/00_raw/load_hubspot_exports.sql`

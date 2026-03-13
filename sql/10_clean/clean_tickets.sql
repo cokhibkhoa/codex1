@@ -18,38 +18,37 @@ create schema if not exists clean;
 create or replace view clean.v_clean_tickets as
 with source_data as (
     select
-        cast(ticket_id as text) as ticket_id,
-        nullif(trim(subject), '') as subject,
-        nullif(trim(status), '') as status_raw,
-        nullif(trim(priority), '') as priority_raw,
-        nullif(trim(owner_email), '') as owner_email_raw,
-        nullif(trim(associated_deal_id), '') as associated_deal_id,
-        nullif(trim(amount), '')::numeric as amount_raw,
-        created_at,
-        updated_at
+        nullif(trim(ticket_id), '') as ticket_id,
+        nullif(trim(ticket_name), '') as ticket_name,
+        nullif(trim(payment_status_sales_crm), '') as payment_status_raw,
+        nullif(trim(first_name_ticket_owner), '') as owner_name_raw,
+        nullif(trim(deal_id), '') as associated_deal_id,
+        nullif(trim(fob_price), '')::numeric as fob_price,
+        nullif(trim(quantity_xn), '')::numeric as quantity,
+        nullif(trim(create_date), '')::timestamp as created_at
     from raw.hubspot_tickets
 ),
 normalized as (
     select
         ticket_id,
-        subject,
-        lower(status_raw) as status_normalized,
-        lower(priority_raw) as priority_normalized,
-        lower(owner_email_raw) as owner_email_normalized,
+        ticket_name,
+        lower(payment_status_raw) as payment_status_normalized,
+        owner_name_raw as owner_name,
         associated_deal_id,
-        amount_raw as amount,
-        created_at,
-        updated_at
+        fob_price,
+        quantity,
+        (fob_price * quantity) as ticket_amount,
+        created_at
     from source_data
 )
 select
     ticket_id,
-    subject,
-    status_normalized,
-    priority_normalized,
-    owner_email_normalized,
+    ticket_name,
+    payment_status_normalized,
+    owner_name,
     associated_deal_id,
-    amount,
-    created_at,
-    updated_at
+    fob_price,
+    quantity,
+    ticket_amount,
+    created_at
 from normalized;

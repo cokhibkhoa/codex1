@@ -25,8 +25,9 @@ select
 from clean.v_clean_tickets t
 cross join lateral (
     values
-        ('subject', t.subject),
-        ('status_normalized', t.status_normalized),
-        ('owner_email_normalized', t.owner_email_normalized)
+        ('ticket_name', t.ticket_name),
+        ('payment_status_normalized', t.payment_status_normalized),
+        ('associated_deal_id', t.associated_deal_id),
+        ('owner_name', t.owner_name)
 ) as field_check(missing_field, field_value)
 where field_value is null;

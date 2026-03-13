@@ -45,8 +45,9 @@ select
     ticket_id,
     associated_deal_id,
     (
-        'ticket_amount=' || coalesce(ticket_amount::text, 'null')
+        'ticket_sum=' || coalesce(ticket_amount::text, 'null')
         || ', deal_amount=' || coalesce(deal_amount::text, 'null')
+        || ', ticket_count=' || coalesce(ticket_count::text, 'null')
         || ', pct_diff=' || coalesce(round(pct_diff::numeric, 4)::text, 'null')
     ) as error_detail,
     severity,
