@@ -1,13 +1,13 @@
 /*
 Purpose:
-- Detect amount mismatch between tickets and associated deals.
+- Detect amount mismatch between ticket totals and associated deal values.
 
 Input:
 - clean.v_clean_tickets
 - raw.hubspot_deals
 
 Output grain:
-- 1 row per ticket-deal pair with mismatch in checks.v_check_amount_mismatch
+- 1 row per deal with mismatch in checks.v_check_amount_mismatch
 
 Business note:
 - This is a starter rule using percentage difference threshold.
@@ -19,34 +19,44 @@ create schema if not exists checks;
 create or replace view checks.v_check_amount_mismatch as
 with deal_amount as (
     select
-        cast(deal_id as text) as deal_id,
-        nullif(trim(amount), '')::numeric as deal_amount
+        nullif(trim(deal_id), '') as deal_id,
+        nullif(trim(sales_confirmation_value_sales), '')::numeric as deal_amount
     from raw.hubspot_deals
+),
+ticket_amount as (
+    select
+        associated_deal_id as deal_id,
+        count(*) as ticket_count,
+        sum(ticket_amount) as total_ticket_amount
+    from clean.v_clean_tickets
+    where associated_deal_id is not null
+    group by associated_deal_id
 ),
 joined as (
     select
-        t.ticket_id,
-        t.associated_deal_id,
-        t.amount as ticket_amount,
+        t.deal_id,
+        t.ticket_count,
+        t.total_ticket_amount,
         d.deal_amount,
         case
             when d.deal_amount is null or d.deal_amount = 0 then null
-            else abs(t.amount - d.deal_amount) / d.deal_amount
+            else abs(t.total_ticket_amount - d.deal_amount) / d.deal_amount
         end as pct_diff
-    from clean.v_clean_tickets t
+    from ticket_amount t
     left join deal_amount d
-        on t.associated_deal_id = d.deal_id
+        on t.deal_id = d.deal_id
 )
 select
     'RQ_DEAL_001'::text as rule_id,
-    ticket_id,
-    associated_deal_id,
-    ticket_amount,
+    null::text as ticket_id,
+    deal_id as associated_deal_id,
+    total_ticket_amount as ticket_amount,
     deal_amount,
     pct_diff,
+    ticket_count,
     'MEDIUM'::text as severity,
     now() as detected_at
 from joined
 where deal_amount is not null
-  and ticket_amount is not null
+  and total_ticket_amount is not null
   and pct_diff > 0.20;  -- TODO: confirm threshold (20% default)
