@@ -18,12 +18,13 @@ Dựng bộ khung tối giản để phát hiện và theo dõi lỗi chất lư
 
 ## 4) Phạm vi lỗi chất lượng cần xử lý
 - Thiếu dữ liệu bắt buộc (null/blank).
-- Sai format (email, phone, date...).
+- Sai format (
 - Sai logic nghiệp vụ (status, amount, timeline).
 - Mapping sai giữa tickets ↔ deals.
-- Duplicate record.
+- Duplicate record id (tickets),
+- Tickets link multiple deals (deals id có thể link với nhiều tickets id.)
 - Multi-value bất thường.
-- Amount lệch logic.
+- Amount lệch (tickets amount lệch so với deals sale value >1000)
 
 ## 5) Nguyên tắc thiết kế
 - Implementation-first: chạy được sớm với mẫu nhỏ.
