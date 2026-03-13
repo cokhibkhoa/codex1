@@ -48,8 +48,8 @@ create table raw.hubspot_tickets (
     first_payment_date_crm text,
     payment_status_sales_crm text,
     po_number_sales text,
-    first_name_ticket_owner text,
-    first_name text
+    ticket_owner text,
+    leader_name text
 );
 
 copy raw.hubspot_tickets
