@@ -34,4 +34,3 @@ Dựng bộ khung tối giản để phát hiện và theo dõi lỗi chất lư
 ## 6) Dữ liệu mẫu trong repo
 - `data/Data Quality - Deals.csv`
 - `data/Data Quality - Tickets.csv`
-- SQL nạp raw mẫu: `sql/00_raw/load_hubspot_exports.sql`
