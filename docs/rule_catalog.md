@@ -1,20 +1,44 @@
 # Rule Catalog
 
-> Mục đích: danh mục rule data quality để quản lý version, owner, mức độ nghiêm trọng và trạng thái xác nhận nghiệp vụ.
+# CRM Data Quality Rules
 
-## Quy ước severity
-- `HIGH`: ảnh hưởng trực tiếp dashboard/KPI hoặc gây sai quyết định.
-- `MEDIUM`: ảnh hưởng một phần báo cáo hoặc vận hành.
-- `LOW`: nên sửa để tăng độ sạch dữ liệu, chưa ảnh hưởng lớn.
+## Global Filter (apply before cleaning)
 
-| rule_id | domain | rule_name | description | severity | status | owner | business_confirmation |
-|---|---|---|---|---|---|---|---|
-| RQ_TICKET_001 | tickets | required_fields_not_null | Ticket phải có các field bắt buộc | HIGH | draft | data-team | TODO |
-| RQ_TICKET_002 | tickets | duplicate_ticket_id | Không được trùng ticket_id | HIGH | draft | data-team | TODO |
-| RQ_DEAL_001 | deals | amount_mismatch_with_ticket | Amount deal lệch bất thường so với ticket liên quan | MEDIUM | draft | data-team | TODO |
+Only process records that satisfy:
 
-## Checklist xác nhận rule trước khi production
-1. Định nghĩa field bắt buộc theo từng pipeline.
-2. Ngưỡng so sánh amount (% lệch cho phép).
-3. Quy tắc mapping ticket ↔ deal (1-1, 1-n, theo key nào).
-4. Hành động khi vi phạm rule (chặn, cảnh báo, hay chỉ log).
+| field | condition |
+|---|---|
+| first_payment_date | >= '2025-01-01' |
+
+This filter must be applied to **both objects**:
+
+- tickets
+- deals
+
+Additional ticket filter:
+
+| field | allowed_values |
+|---|---|
+| payment_status | 'complete payment', 'deposit' |
+
+Records outside these conditions must be excluded from downstream views.
+
+---
+
+# View Catalog
+
+# View Catalog
+
+| view_name | grain | purpose |
+|---|---|---|
+| checks.v_ticket_errors | 1 row / ticket_id | Detect ticket data quality issues |
+| checks.v_deal_errors | 1 row / deal_id | Detect deal data quality issues |
+| marts.v_error_summary | aggregated | Weekly and monthly error summary |
+
+---
+
+# Clean Layer Rules
+
+## clean.v_clean_tickets
+
+grain:
