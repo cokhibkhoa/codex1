@@ -16,7 +16,7 @@ Dựng bộ khung tối giản để phát hiện và theo dõi lỗi chất lư
 
 ## 4) Phạm vi lỗi chất lượng cần xử lý
 - Thiếu dữ liệu bắt buộc (null/blank).
-- Sai format (
+- Ticket ID, Deal ID ở file csv đang ở dạng số mũ (những vẫn là số unique) chuyển qua sql bảng raw type text khiến những ID này bị trùng (ví dụ: 
 - Sai logic nghiệp vụ (status, amount, timeline).
 - Mapping sai giữa tickets ↔ deals.
 - Duplicate record id (tickets id, deals id).
