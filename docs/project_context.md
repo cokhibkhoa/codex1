@@ -12,7 +12,6 @@
 | **Đặc điểm dữ liệu** | ID có thể ở dạng **scientific notation** (`1.35199E+11`), dữ liệu trống nhiều. |
 | **Missing data** | Đo số lượng null ở tất cả các cột(attributes) |
 | **ID issues** | Scientific notation có thể gây **duplicate key violation** khi import PostgreSQL. ID cần **normalize trước khi enforce uniqueness**. |
-| **Mapping issues** | Ticket không có deal tương ứng, deal id không có ticket hoặc mapping sai giữa tickets ↔ deals. |
 | **Business logic errors** | Ví dụ: `ABS(ticket_amount - deal_amount) > 1000`, deal_amount là sale confirmation values. |
 | **Multi-value issues** | Field dạng `12345;56789;34567`. Kiểm tra số lượng value và format. |
 | **Nguyên tắc thiết kế** | Implementation-first, SQL đơn giản, tách lớp `raw → clean → checks → marts`. |
