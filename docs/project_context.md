@@ -16,7 +16,8 @@ Dựng bộ khung tối giản để phát hiện và theo dõi lỗi chất lư
 
 ## 4) Phạm vi lỗi chất lượng cần xử lý
 - Thiếu dữ liệu bắt buộc (null/blank).
-- Ticket ID, Deal ID ở file csv đang ở dạng số mũ (những vẫn là số unique) chuyển qua sql bảng raw type text khiến những ID này bị trùng (ví dụ: 
+- Ticket ID, Deal ID ở file csv đang ở dạng số mũ (những vẫn là số unique) chuyển qua sql bảng raw type text khiến những ID này bị trùng (ví dụ: ERROR: duplicate key value violates unique constraint "hubspot_deals_pkey"
+DETAIL: Key (deal_id)=(1.35199E+11) already exists.). Bản chất ID được xuất từ hubspot crm nên là unique. Nếu tạo bảng type text trước khi import gây ra việc id bị trùng.
 - Sai logic nghiệp vụ (status, amount, timeline).
 - Mapping sai giữa tickets ↔ deals.
 - Duplicate record id (tickets id, deals id).
