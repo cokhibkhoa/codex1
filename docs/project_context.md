@@ -9,7 +9,6 @@ Dựng bộ khung tối giản để phát hiện và theo dõi lỗi chất lư
 - Chưa có quy ước input/output cho các bước clean/check/mart.
 
 ## 3) Nguồn dữ liệu
-- HubSpot export CSV đặt tại thư mục `data/` hoặc API sync vào bảng raw.
 - Thực thể chính:
 - data/Data Quality - Deals.csv
 - data/Data Quality - Tickets.csv
