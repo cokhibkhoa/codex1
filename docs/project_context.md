@@ -9,8 +9,6 @@ Dựng bộ khung tối giản để phát hiện và theo dõi lỗi chất lư
 - Chưa có quy ước input/output cho các bước clean/check/mart.
 
 ## 3) Nguồn dữ liệu
-- HubSpot export CSV đặt tại thư mục `data/` hoặc API sync vào bảng raw.
-- Thực thể chính:
 - data/Data Quality - Deals.csv
 - data/Data Quality - Tickets.csv
 
@@ -18,10 +16,9 @@ Dựng bộ khung tối giản để phát hiện và theo dõi lỗi chất lư
 - Thiếu dữ liệu bắt buộc (null/blank).
 - Ticket ID, Deal ID ở file csv đang ở dạng số mũ (những vẫn là số unique) chuyển qua sql bảng raw type text khiến những ID này bị trùng (ví dụ: ERROR: duplicate key value violates unique constraint "hubspot_deals_pkey"
 DETAIL: Key (deal_id)=(1.35199E+11) already exists.). Bản chất ID được xuất từ hubspot crm nên là unique. Nếu tạo bảng type text trước khi import gây ra việc id bị trùng.
-- Sai logic nghiệp vụ (status, amount, timeline).
+- Sai logic nghiệp vụ (status, amount, timeline). 
 - Mapping sai giữa tickets ↔ deals.
 - Duplicate record id (tickets id, deals id).
-- Tickets link multiple deals (deals id có thể link với nhiều tickets id.)
 - Multi-value bất thường.
 - Amount lệch (tickets amount lệch so với deals sale value, giá trị lệch >1000)
 
