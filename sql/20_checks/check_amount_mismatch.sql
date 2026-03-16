@@ -17,6 +17,11 @@ Business note:
 create schema if not exists checks;
 
 create or replace view checks.v_check_amount_mismatch as
+/*
+NOTE:
+- Advanced amount reconciliation is out-of-scope for current 1-week dashboard MVP.
+- Keep this view as optional exploration and exclude from marts aggregates by default.
+*/
 with deal_amount as (
     select
         nullif(trim(deal_id), '') as deal_id,
@@ -47,7 +52,7 @@ joined as (
         on t.deal_id = d.deal_id
 )
 select
-    'RQ_DEAL_001'::text as rule_id,
+    'RQ_DEAL_099'::text as rule_id,
     null::text as ticket_id,
     deal_id as associated_deal_id,
     total_ticket_amount as ticket_amount,
