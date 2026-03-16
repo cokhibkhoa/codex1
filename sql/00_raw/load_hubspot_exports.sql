@@ -29,9 +29,6 @@ create table raw.hubspot_deals (
     first_name text
 );
 
-copy raw.hubspot_deals
-from program 'tail -n +3 data/Data Quality - Deals.csv'
-with (format csv, header true);
 
 drop table if exists raw.hubspot_tickets;
 create table raw.hubspot_tickets (
@@ -52,6 +49,3 @@ create table raw.hubspot_tickets (
     leader_name text
 );
 
-copy raw.hubspot_tickets
-from program 'tail -n +3 data/Data Quality - Tickets.csv'
-with (format csv, header true);
