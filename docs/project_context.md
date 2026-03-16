@@ -1,36 +1,20 @@
-# Project Context - CRM Data Quality (SME)
+# Project Context — CRM Data Quality
 
-## 1) Mục tiêu
-Dựng bộ khung tối giản để phát hiện và theo dõi lỗi chất lượng dữ liệu CRM (HubSpot), tập trung vào **tickets** và **deals**, dùng PostgreSQL làm lớp xử lý chính và xuất output cho Google Sheets/dashboard.
-
-## 2) Hiện trạng repo (audit nhanh)
-- Repo đang rất tối giản, chưa có cấu trúc data project.
-- Chưa có SQL pipeline, rule catalog, hay view catalog.
-- Chưa có quy ước input/output cho các bước clean/check/mart.
-
-## 3) Nguồn dữ liệu
-- HubSpot export CSV đặt tại thư mục `data/` hoặc API sync vào bảng raw.
-- Thực thể chính:
-- data/Data Quality - Deals.csv
-- data/Data Quality - Tickets.csv
-
-## 4) Phạm vi lỗi chất lượng cần xử lý
-- Thiếu dữ liệu bắt buộc (null/blank).
-- Sai format (
-- Sai logic nghiệp vụ (status, amount, timeline).
-- Mapping sai giữa tickets ↔ deals.
-- Duplicate record id (tickets id, deals id).
-- Tickets link multiple deals (deals id có thể link với nhiều tickets id.)
-- Multi-value bất thường.
-- Amount lệch (tickets amount lệch so với deals sale value, giá trị lệch >1000)
-
-## 5) Nguyên tắc thiết kế
-- Implementation-first: chạy được sớm với mẫu nhỏ.
-- Practical/minimal: SQL rõ ràng, không over-engineering.
-- Maintainable: tách lớp `raw -> clean -> checks -> marts`.
-- Business-safe: rule chưa rõ phải gắn `TODO` và chờ xác nhận.
-
-
-## 6) Dữ liệu mẫu trong repo
-- `data/Data Quality - Deals.csv`
-- `data/Data Quality - Tickets.csv`
+| Mục | Nội dung |
+|---|---|
+| **Mục tiêu** | Xây dựng pipeline kiểm tra **chất lượng dữ liệu HubSpot CRM** cho **Deals** và **Tickets**. Stack: **CSV export → PostgreSQL → Google Sheets / dashboard**. |
+| **Pipeline** | `CSV → raw → clean → checks → marts` |
+| **raw layer** | Import trực tiếp CSV, **không transform**, giữ dữ liệu gốc để debug. |
+| **clean layer** | Chuẩn hoá dữ liệu: format ID, number, date, trim blank, normalize field. |
+| **checks layer** | Chạy **data quality rules**. Output bảng issue: `rule_name, object_type, record_id, issue_detail`. |
+| **marts layer** | Bảng tổng hợp để xuất **Google Sheets / dashboard**. |
+| **Nguồn dữ liệu** | `data/Data Quality - Deals.csv` ; `data/Data Quality - Tickets.csv` |
+| **Đặc điểm dữ liệu** | ID có thể ở dạng **scientific notation** (`1.35199E+11`), dữ liệu trống nhiều. |
+| **Missing data** | Đo số lượng null ở tất cả các cột(attributes) |
+| **ID issues** | Scientific notation có thể gây **duplicate key violation** khi import PostgreSQL. ID cần **normalize trước khi enforce uniqueness**. |
+| **Mapping issues** | Ticket không có deal tương ứng, deal id không có ticket hoặc mapping sai giữa tickets ↔ deals. |
+| **Business logic errors** | Ví dụ: `ABS(ticket_amount - deal_amount) > 1000`, deal_amount là sale confirmation values. |
+| **Multi-value issues** | Field dạng `12345;56789;34567`. Kiểm tra số lượng value và format. |
+| **Nguyên tắc thiết kế** | Implementation-first, SQL đơn giản, tách lớp `raw → clean → checks → marts`. |
+| **Rule chưa rõ** | Gắn `TODO: confirm business rule`. |
+| **Dữ liệu mẫu** | CSV trong thư mục `data/` dùng để thiết kế schema và test rule. |
