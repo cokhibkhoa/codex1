@@ -1,4 +1,4 @@
-# CRM Data Quality — Rules & Views
+# CRM Data Quality — Rules 
 
 This document defines the **data quality rules and SQL views** used to detect missing attributes in HubSpot CRM exports.
 
