@@ -13,6 +13,7 @@ Input files (manual import source from local disk):
 Important:
 - This script does NOT run COPY/\copy automatically.
 - Please import local CSV files into STG tables manually using your SQL client (DBeaver/pgAdmin/psql) before running RAW/AUDIT sections.
+- This script intentionally does NOT drop STG tables, so imported data is preserved.
 */
 
 create schema if not exists raw;
@@ -27,14 +28,13 @@ as $$
         case
             when id_text is null or btrim(id_text) = '' then null
             when btrim(id_text) ~ '^[+-]?\d+(\.\d+)?([eE][+-]?\d+)?$' then
-                regexp_replace(trim(to_char((btrim(id_text)::numeric), 'FM99999999999999999999999999999999999990')), '\.$', '')
+                trim_scale((btrim(id_text)::numeric))::text
             else btrim(id_text)
         end
 $$;
 
 -- ========== STG: DEALS (full text copy for audit) ==========
-drop table if exists raw.stg_hubspot_deals_csv;
-create table raw.stg_hubspot_deals_csv (
+create table if not exists raw.stg_hubspot_deals_csv (
     deal_id text,
     deal_name text,
     po_number_sales text,
@@ -50,13 +50,13 @@ create table raw.stg_hubspot_deals_csv (
 );
 
 -- MANUAL STEP (local disk import):
--- Import local file "Data Quality - Deals.csv" into raw.stg_hubspot_deals_csv (all columns as text, header disabled).
+-- 1) Optional: truncate table raw.stg_hubspot_deals_csv;
+-- 2) Import local file "Data Quality - Deals.csv" into raw.stg_hubspot_deals_csv (all columns as text, header disabled).
 -- Example with psql (run on client machine):
 -- \copy raw.stg_hubspot_deals_csv from '/path/to/Data Quality - Deals.csv' with (format csv, header false);
 
 -- ========== STG: TICKETS (full text copy for audit) ==========
-drop table if exists raw.stg_hubspot_tickets_csv;
-create table raw.stg_hubspot_tickets_csv (
+create table if not exists raw.stg_hubspot_tickets_csv (
     ticket_id text,
     ticket_name text,
     create_date text,
@@ -75,9 +75,22 @@ create table raw.stg_hubspot_tickets_csv (
 );
 
 -- MANUAL STEP (local disk import):
--- Import local file "Data Quality - Tickets.csv" into raw.stg_hubspot_tickets_csv (all columns as text, header disabled).
+-- 1) Optional: truncate table raw.stg_hubspot_tickets_csv;
+-- 2) Import local file "Data Quality - Tickets.csv" into raw.stg_hubspot_tickets_csv (all columns as text, header disabled).
 -- Example with psql (run on client machine):
 -- \copy raw.stg_hubspot_tickets_csv from '/path/to/Data Quality - Tickets.csv' with (format csv, header false);
+
+-- Guardrail: stop RAW build when STG has no data.
+do $$
+begin
+    if (select count(*) from raw.stg_hubspot_deals_csv) = 0 then
+        raise exception 'raw.stg_hubspot_deals_csv is empty. Please import local CSV before running RAW build.';
+    end if;
+
+    if (select count(*) from raw.stg_hubspot_tickets_csv) = 0 then
+        raise exception 'raw.stg_hubspot_tickets_csv is empty. Please import local CSV before running RAW build.';
+    end if;
+end $$;
 
 -- ========== RAW: DEALS ==========
 drop table if exists raw.hubspot_deals_raw;
