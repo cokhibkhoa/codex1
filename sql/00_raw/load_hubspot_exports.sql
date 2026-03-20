@@ -43,17 +43,33 @@ create table if not exists raw.stg_hubspot_deals_csv (
     first_payment_date_crm text,
     payment_status_sales_crm text,
     total_number_of_items_sales text,
+    shipping_estimate_sales text,
+    handling_fee text,
     sales_confirmation_value_sales text,
     ticket_id text,
     deal_owner_first_name text,
-    first_name text
+    leader_name text
 );
+
+alter table if exists raw.stg_hubspot_deals_csv
+    add column if not exists shipping_estimate_sales text;
+
+alter table if exists raw.stg_hubspot_deals_csv
+    add column if not exists handling_fee text;
+
+alter table if exists raw.stg_hubspot_deals_csv
+    add column if not exists leader_name text;
 
 -- MANUAL STEP (local disk import):
 -- 1) Optional: truncate table raw.stg_hubspot_deals_csv;
 -- 2) Import local file "Data Quality - Deals.csv" into raw.stg_hubspot_deals_csv (all columns as text, header disabled).
 -- Example with psql (run on client machine):
--- \copy raw.stg_hubspot_deals_csv from '/path/to/Data Quality - Deals.csv' with (format csv, header false);
+-- \copy raw.stg_hubspot_deals_csv (
+--     deal_id, deal_name, po_number_sales, country_sales, customer_code_sales,
+--     first_payment_date_crm, payment_status_sales_crm, total_number_of_items_sales,
+--     shipping_estimate_sales, handling_fee, sales_confirmation_value_sales,
+--     ticket_id, deal_owner_first_name, leader_name
+-- ) from '/path/to/Data Quality - Deals.csv' with (format csv, header false);
 
 -- ========== STG: TICKETS (full text copy for audit) ==========
 create table if not exists raw.stg_hubspot_tickets_csv (
@@ -74,11 +90,18 @@ create table if not exists raw.stg_hubspot_tickets_csv (
     leader_name text
 );
 
+alter table if exists raw.stg_hubspot_tickets_csv
+    add column if not exists leader_name text;
+
 -- MANUAL STEP (local disk import):
 -- 1) Optional: truncate table raw.stg_hubspot_tickets_csv;
 -- 2) Import local file "Data Quality - Tickets.csv" into raw.stg_hubspot_tickets_csv (all columns as text, header disabled).
 -- Example with psql (run on client machine):
--- \copy raw.stg_hubspot_tickets_csv from '/path/to/Data Quality - Tickets.csv' with (format csv, header false);
+-- \copy raw.stg_hubspot_tickets_csv (
+--     ticket_id, ticket_name, create_date, type_of_products, customer_code_xn,
+--     fob_price, quantity_xn, style_xn, color_xn, deal_id, first_payment_date_crm,
+--     payment_status_sales_crm, po_number_sales, ticket_owner, leader_name
+-- ) from '/path/to/Data Quality - Tickets.csv' with (format csv, header false);
 
 -- Guardrail: stop RAW build when STG has no data.
 do $$
@@ -89,6 +112,22 @@ begin
 
     if (select count(*) from raw.stg_hubspot_tickets_csv) = 0 then
         raise exception 'raw.stg_hubspot_tickets_csv is empty. Please import local CSV before running RAW build.';
+    end if;
+end $$;
+
+do $$
+begin
+    if exists (
+        select 1
+        from information_schema.columns
+        where table_schema = 'raw'
+          and table_name = 'stg_hubspot_deals_csv'
+          and column_name = 'first_name'
+    ) then
+        execute '
+            update raw.stg_hubspot_deals_csv
+            set leader_name = coalesce(leader_name, first_name)
+        ';
     end if;
 end $$;
 
@@ -104,10 +143,12 @@ select
     nullif(trim(first_payment_date_crm), '') as first_payment_date_crm,
     nullif(trim(payment_status_sales_crm), '') as payment_status_sales_crm,
     nullif(trim(total_number_of_items_sales), '') as total_number_of_items_sales,
+    nullif(trim(shipping_estimate_sales), '') as shipping_estimate_sales,
+    nullif(trim(handling_fee), '') as handling_fee,
     nullif(trim(sales_confirmation_value_sales), '') as sales_confirmation_value_sales,
     raw.normalize_hubspot_id(ticket_id) as ticket_id,
     nullif(trim(deal_owner_first_name), '') as deal_owner_first_name,
-    nullif(trim(first_name), '') as first_name
+    nullif(trim(leader_name), '') as leader_name
 from raw.stg_hubspot_deals_csv
 where coalesce(trim(deal_id), '') <> ''
   and lower(trim(deal_id)) <> 'deal id'
@@ -120,6 +161,25 @@ alter table raw.hubspot_deals_raw rename to hubspot_deals;
 -- ========== RAW: TICKETS ==========
 drop table if exists raw.hubspot_tickets_raw;
 create table raw.hubspot_tickets_raw as
+with ticket_multi_deal as (
+    select
+        ticket_id
+    from (
+        select
+            raw.normalize_hubspot_id(ticket_id) as ticket_id,
+            count(distinct raw.normalize_hubspot_id(nullif(trim(piece), ''))) as distinct_deal_count
+        from raw.stg_hubspot_tickets_csv s
+        cross join lateral regexp_split_to_table(
+            coalesce(s.deal_id, ''),
+            '\s*(?:;|\||/)\s*|,\s+'
+        ) as piece
+        where coalesce(trim(ticket_id), '') <> ''
+          and lower(trim(ticket_id)) <> 'ticket id'
+          and lower(trim(ticket_id)) not like 'hubspot import%'
+        group by raw.normalize_hubspot_id(ticket_id)
+    ) t
+    where distinct_deal_count > 1
+)
 select
     raw.normalize_hubspot_id(ticket_id) as ticket_id,
     nullif(trim(ticket_name), '') as ticket_name,
@@ -140,7 +200,11 @@ select
 from raw.stg_hubspot_tickets_csv
 where coalesce(trim(ticket_id), '') <> ''
   and lower(trim(ticket_id)) <> 'ticket id'
-  and lower(trim(ticket_id)) not like 'hubspot import%';
+  and lower(trim(ticket_id)) not like 'hubspot import%'
+  and raw.normalize_hubspot_id(ticket_id) not in (
+      select ticket_id
+      from ticket_multi_deal
+  );
 
 -- Backward-compatibility object name.
 drop table if exists raw.hubspot_tickets;
@@ -212,7 +276,10 @@ from (
         raw.normalize_hubspot_id(ticket_id) as ticket_id,
         nullif(trim(piece), '') as deal_id_piece
     from raw.stg_hubspot_tickets_csv s
-    cross join lateral regexp_split_to_table(coalesce(s.deal_id, ''), '\s*[,;|/]\s*') as piece
+    cross join lateral regexp_split_to_table(
+        coalesce(s.deal_id, ''),
+        '\s*(?:;|\||/)\s*|,\s+'
+    ) as piece
     where coalesce(trim(ticket_id), '') <> ''
       and lower(trim(ticket_id)) <> 'ticket id'
       and lower(trim(ticket_id)) not like 'hubspot import%'

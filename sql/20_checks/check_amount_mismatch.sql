@@ -4,7 +4,7 @@ Purpose:
 
 Input:
 - clean.v_clean_tickets
-- raw.hubspot_deals
+- clean.v_clean_deals
 
 Output grain:
 - 1 row per deal with mismatch in checks.v_check_amount_mismatch
@@ -24,17 +24,24 @@ NOTE:
 */
 with deal_amount as (
     select
-        nullif(trim(deal_id), '') as deal_id,
-        nullif(trim(sales_confirmation_value_sales), '')::numeric as deal_amount
-    from raw.hubspot_deals
+        deal_id,
+        net_sale_value as deal_amount,
+        owner_name,
+        team_leader,
+        payment_status_normalized
+    from clean.v_clean_deals
+    where payment_status_normalized in ('complete payment', 'deposit only')
 ),
 ticket_amount as (
     select
         associated_deal_id as deal_id,
         count(*) as ticket_count,
-        sum(ticket_amount) as total_ticket_amount
+        sum(ticket_amount) as total_ticket_amount,
+        min(owner_name) as owner_name,
+        min(team_leader) as team_leader
     from clean.v_clean_tickets
     where associated_deal_id is not null
+      and payment_status_normalized in ('deposit 50%', 'pay 100%')
     group by associated_deal_id
 ),
 joined as (
@@ -43,6 +50,8 @@ joined as (
         t.ticket_count,
         t.total_ticket_amount,
         d.deal_amount,
+        coalesce(d.owner_name, t.owner_name) as owner_name,
+        coalesce(d.team_leader, t.team_leader) as team_leader,
         case
             when d.deal_amount is null or d.deal_amount = 0 then null
             else abs(t.total_ticket_amount - d.deal_amount) / d.deal_amount
@@ -57,6 +66,8 @@ select
     deal_id as associated_deal_id,
     total_ticket_amount as ticket_amount,
     deal_amount,
+    owner_name,
+    team_leader,
     pct_diff,
     ticket_count,
     'MEDIUM'::text as severity,

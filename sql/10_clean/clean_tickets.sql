@@ -8,6 +8,7 @@ Input:
 
 Prerequisite:
 - STG tables must be imported manually from local disk before RAW/CLEAN flow execution.
+- raw.hubspot_tickets already excludes multi-deal tickets during RAW build.
 
 Main grain / PK logic for final table:
 - (ticket_id, deal_id)
@@ -33,8 +34,8 @@ with prepared as (
         nullif(trim(first_payment_date_crm), '')::date as first_payment_date,
         lower(nullif(trim(payment_status_sales_crm), '')) as payment_status,
         nullif(trim(po_number_sales), '') as po_number,
-        nullif(trim(ticket_owner), '') as ticket_owner,
-        nullif(trim(leader_name), '') as leader_name
+        nullif(trim(ticket_owner), '') as owner_name,
+        nullif(trim(leader_name), '') as team_leader
     from raw.hubspot_tickets
 ), exploded_deals as (
     select
@@ -52,10 +53,13 @@ with prepared as (
         p.first_payment_date,
         p.payment_status,
         p.po_number,
-        p.ticket_owner,
-        p.leader_name
+        p.owner_name,
+        p.team_leader
     from prepared p
-    cross join lateral regexp_split_to_table(coalesce(p.deal_id_raw, ''), '\s*[,;|/]\s*') as piece
+    cross join lateral regexp_split_to_table(
+        coalesce(p.deal_id_raw, ''),
+        '\s*(?:;|\||/)\s*|,\s+'
+    ) as piece
 )
 select
     ticket_id,
@@ -70,14 +74,31 @@ select
     color,
     deal_id,
     first_payment_date,
-    payment_status,
+    payment_status as payment_status_normalized,
     po_number,
-    ticket_owner,
-    leader_name
+    owner_name,
+    team_leader
 from exploded_deals
 where ticket_id is not null
   and deal_id is not null
-  and first_payment_date >= date '2025-01-01'
-  and payment_status in ('pay 100%', 'deposit 50%');
+  and first_payment_date >= date '2025-01-01';
 
-
+create or replace view clean.v_clean_tickets as
+select
+    ticket_id,
+    ticket_name,
+    created_date,
+    type_of_products,
+    customer_code,
+    fob_price,
+    quantity,
+    ticket_amount,
+    style,
+    color,
+    deal_id as associated_deal_id,
+    first_payment_date,
+    payment_status_normalized,
+    po_number,
+    owner_name,
+    team_leader
+from clean.v_ticket_clean_base;

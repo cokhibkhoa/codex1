@@ -7,6 +7,7 @@ Input:
 - checks.v_check_duplicate_ticket_id
 - checks.v_check_null_required_deal_fields
 - checks.v_check_duplicate_deal_id
+- checks.v_check_amount_mismatch
 
 Output grain:
 - marts.v_ticket_error_summary: 1 row per ticket_id with error attributes
@@ -54,15 +55,29 @@ with null_err as (
         deal_id,
         row_count as duplicate_row_count
     from checks.v_check_duplicate_deal_id
+), mismatch_err as (
+    select
+        associated_deal_id as deal_id,
+        count(*) as mismatch_error_count
+    from checks.v_check_amount_mismatch
+    group by associated_deal_id
 )
 select
-    coalesce(n.deal_id, d.deal_id) as deal_id,
+    coalesce(n.deal_id, d.deal_id, m.deal_id) as deal_id,
     (n.deal_id is not null) as has_null_required_field_error,
     coalesce(n.null_error_count, 0) as null_error_count,
     n.missing_fields,
     (d.deal_id is not null) as has_duplicate_id_error,
     coalesce(d.duplicate_row_count, 0) as duplicate_row_count,
-    (coalesce(n.null_error_count, 0) + case when d.deal_id is not null then 1 else 0 end) as total_error_types
+    (m.deal_id is not null) as has_amount_mismatch_error,
+    coalesce(m.mismatch_error_count, 0) as mismatch_error_count,
+    (
+        coalesce(n.null_error_count, 0)
+        + case when d.deal_id is not null then 1 else 0 end
+        + case when m.deal_id is not null then 1 else 0 end
+    ) as total_error_types
 from null_err n
 full outer join dup_err d
-    on n.deal_id = d.deal_id;
+    on n.deal_id = d.deal_id
+full outer join mismatch_err m
+    on coalesce(n.deal_id, d.deal_id) = m.deal_id;
