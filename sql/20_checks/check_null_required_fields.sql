@@ -28,6 +28,7 @@ cross join lateral (
         ('ticket_name', t.ticket_name),
         ('payment_status_normalized', t.payment_status_normalized),
         ('associated_deal_id', t.associated_deal_id),
-        ('owner_name', t.owner_name)
+        ('owner_name', t.owner_name),
+        ('team_leader', t.team_leader)
 ) as field_check(missing_field, field_value)
 where field_value is null;
