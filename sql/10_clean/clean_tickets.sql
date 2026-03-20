@@ -8,6 +8,7 @@ Input:
 
 Prerequisite:
 - STG tables must be imported manually from local disk before RAW/CLEAN flow execution.
+- raw.hubspot_tickets already excludes multi-deal tickets during RAW build.
 
 Main grain / PK logic for final table:
 - (ticket_id, deal_id)
@@ -80,8 +81,7 @@ select
 from exploded_deals
 where ticket_id is not null
   and deal_id is not null
-  and first_payment_date >= date '2025-01-01'
-  and payment_status in ('pay 100%', 'deposit 50%');
+  and first_payment_date >= date '2025-01-01';
 
 create or replace view clean.v_clean_tickets as
 select

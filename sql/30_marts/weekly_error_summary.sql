@@ -33,3 +33,13 @@ order by
     month_start_date desc,
     entity_type,
     error_count desc;
+
+create or replace view marts.v_error_dashboard_summary as
+select
+    month_start_date,
+    entity_type,
+    rule_id,
+    severity,
+    error_count,
+    affected_entities
+from marts.v_monthly_error_summary;

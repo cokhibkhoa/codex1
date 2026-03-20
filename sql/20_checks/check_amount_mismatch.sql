@@ -4,7 +4,7 @@ Purpose:
 
 Input:
 - clean.v_clean_tickets
-- raw.hubspot_deals
+- clean.v_clean_deals
 
 Output grain:
 - 1 row per deal with mismatch in checks.v_check_amount_mismatch
@@ -24,15 +24,13 @@ NOTE:
 */
 with deal_amount as (
     select
-        nullif(trim(deal_id), '') as deal_id,
-        (
-            coalesce(nullif(trim(sales_confirmation_value_sales), '')::numeric, 0)
-            - coalesce(nullif(trim(shipping_estimate_sales), '')::numeric, 0)
-            - coalesce(nullif(trim(handling_fee), '')::numeric, 0)
-        ) as deal_amount,
-        nullif(trim(deal_owner_first_name), '') as owner_name,
-        nullif(trim(leader_name), '') as team_leader
-    from raw.hubspot_deals
+        deal_id,
+        net_sale_value as deal_amount,
+        owner_name,
+        team_leader,
+        payment_status_normalized
+    from clean.v_clean_deals
+    where payment_status_normalized in ('complete payment', 'deposit only')
 ),
 ticket_amount as (
     select
@@ -43,6 +41,7 @@ ticket_amount as (
         min(team_leader) as team_leader
     from clean.v_clean_tickets
     where associated_deal_id is not null
+      and payment_status_normalized in ('deposit 50%', 'pay 100%')
     group by associated_deal_id
 ),
 joined as (
